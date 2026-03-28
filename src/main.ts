@@ -1,8 +1,26 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { ConfigService } from '@nestjs/config';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  await app.listen(3000);
+
+  const configService = app.get(ConfigService);
+
+  // Global validation pipe — enforces all DTOs automatically
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true, // strip unknown properties
+      forbidNonWhitelisted: true, // throw if unknown props sent
+      transform: true, // auto-transform payloads to DTO types
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  );
+  await app.listen(configService.get('app.port'), () => {
+    console.log(`Server running at port: ${configService.get('app.port')}`);
+  });
 }
 bootstrap();
