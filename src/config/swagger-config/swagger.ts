@@ -39,7 +39,7 @@ This API uses **HTTP-only cookies** for authentication — not Bearer tokens.
 
   const document = SwaggerModule.createDocument(app, config);
 
-  SwaggerModule.setup('docs', app, document, {
+  SwaggerModule.setup('api/v1/docs', app, document, {
     swaggerOptions: {
       // Persist auth between page refreshes in Swagger UI
       persistAuthorization: true,

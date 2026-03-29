@@ -27,6 +27,10 @@ async function bootstrap() {
   if (!isProd) {
     setupSwagger(app);
   }
+
+  // API prefix
+  app.setGlobalPrefix('api/v1');
+
   await app.listen(configService.get('app.port'), () => {
     console.log(`Server running at port: ${configService.get('app.port')}`);
   });
