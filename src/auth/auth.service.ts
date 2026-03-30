@@ -3,6 +3,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -14,6 +15,7 @@ import { RefreshToken } from 'src/entities/refresh-token.entity';
 import { Response } from 'express';
 import { RegisterUserDto } from './dto/register-user.dto';
 import * as bcrypt from 'bcrypt';
+import { LoginUserDto } from './dto/login-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -48,7 +50,7 @@ export class AuthService {
       email: dto.email,
       password: password_hash,
     });
-
+    await this.userRepository.save(user);
     this.logger.log(`New user registered: ${user.id}`);
 
     // 4. Generate tokens
@@ -71,6 +73,58 @@ export class AuthService {
         full_name: user.name,
         email: user.email,
         createdAt: user.createdAt,
+      },
+    };
+  }
+
+  //  LOGIN
+  async loginUser(dto: LoginUserDto, res: Response) {
+    // 1. Find user by email — select only needed fields
+    const user = await this.userRepository.findOne({
+      where: { email: dto.email, isActive: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        password: true,
+      },
+    });
+
+    // 2. Always run bcrypt compare even if user not found
+    //    This prevents timing attacks that reveal whether an email exists
+    const dummyHash =
+      '$2b$12$invalidhashfortimingprotectiononly000000000000000000000';
+    const isPasswordValid = await bcrypt.compare(
+      dto.password,
+      user?.password ?? dummyHash,
+    );
+
+    // 3. Reject with a generic message — never reveal which field is wrong
+    if (!user || !isPasswordValid) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    // 4. Generate tokens
+    const { accessToken, refreshToken } = await this.generateTokens(
+      user.id,
+      user.email,
+    );
+
+    // 5. Store hashed refresh token in DB
+    await this.storeRefreshToken(user.id, refreshToken);
+
+    // 6. Set HTTP-only cookies
+    this.setAuthCookies(res, accessToken, refreshToken);
+
+    this.logger.log(`User logged in: ${user.id}`);
+
+    // 7. Return safe user info — never return tokens in body
+    return {
+      message: 'Login successful',
+      user: {
+        id: user.id,
+        full_name: user.name,
+        email: user.email,
       },
     };
   }
