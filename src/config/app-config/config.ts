@@ -9,6 +9,12 @@ export const applicationConfig = {
   appHeaderLanguage: process.env[`APP_HEADER_LANGUAGE`],
   frontendUrl: process.env[`FRONTEND_URL`],
 
+  jwtAccessSecret: process.env[`JWT_ACCESS_SECRET`],
+  jwtRefreshSecret: process.env[`JWT_REFRESH_SECRET`],
+  accessTokenExpiry: process.env[`ACCESS_TOKEN_EXPIRY`] || '15m',
+  refreshTokenExpiryDays:
+    parseInt(process.env[`REFRESH_TOKEN_EXPIRY_DAYS`], 10) || 7,
+
   database: {
     host: process.env[`DB_HOST`],
     port: parseInt(process.env[`DB_PORT`], 10) | 5432,
@@ -19,6 +25,7 @@ export const applicationConfig = {
     maxConnection: parseInt(process.env[`DB_MAX_CONNECTIONS`], 10) || 100,
     sslEnabled: process.env[`DB_SSL_ENABLED`] === 'true',
     rejectUnauthorized: process.env[`DB_REJECT_UNAUTHORIZED`] === 'true',
-    nodeTlsRejectUnauthorized: process.env[`NODE_TLS_REJECT_UNAUTHORIZED`] === 'true',
+    nodeTlsRejectUnauthorized:
+      process.env[`NODE_TLS_REJECT_UNAUTHORIZED`] === 'true',
   },
 };
