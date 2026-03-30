@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -11,6 +12,8 @@ import { User } from 'src/entities/user.entity';
 import { Repository } from 'typeorm';
 import { RefreshToken } from 'src/entities/refresh-token.entity';
 import { Response } from 'express';
+import { RegisterUserDto } from './dto/register-user.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -21,11 +24,60 @@ export class AuthService {
     private readonly jwtService: JwtService,
     @InjectRepository(RefreshToken)
     private readonly refreshTokenRepository: Repository<RefreshToken>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
+  //  REGISTER
+  async registerUser(dto: RegisterUserDto, res: Response) {
+    // 1. Check for existing user (timing-safe: always hash even if user exists)
+    const existingUser = await this.userRepository.findOne({
+      where: { email: dto.email },
+      select: ['id'],
+    });
+
+    if (existingUser) {
+      throw new ConflictException('An account with this email already exists');
+    }
+
+    // 2. Hash password
+    const password_hash = await bcrypt.hash(dto.password, this.SALT_ROUNDS);
+
+    const user = this.userRepository.create({
+      name: dto.full_name,
+      email: dto.email,
+      password: password_hash,
+    });
+
+    this.logger.log(`New user registered: ${user.id}`);
+
+    // 4. Generate tokens
+    const { accessToken, refreshToken } = await this.generateTokens(
+      user.id,
+      user.email,
+    );
+
+    // 5. Store hashed refresh token in DB
+    await this.storeRefreshToken(user.id, refreshToken);
+
+    // 6. Set HTTP-only cookies
+    this.setAuthCookies(res, accessToken, refreshToken);
+
+    // 7. Return safe user data (never return tokens in body)
+    return {
+      message: 'Registration successful',
+      user: {
+        id: user.id,
+        full_name: user.name,
+        email: user.email,
+        createdAt: user.createdAt,
+      },
+    };
+  }
+
   //  TOKEN GENERATION
-  private async generateTokens(userId: string, email: string, role: string) {
-    const payload = { sub: userId, email, role };
+  private async generateTokens(userId: string, email: string) {
+    const payload = { sub: userId, email };
 
     const accessSecret = this.configService.get<string>('app.jwtAccessSecret');
     const refreshSecret = this.configService.get<string>(
