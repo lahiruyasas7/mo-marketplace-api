@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
 import { setupSwagger } from './config/swagger-config/swagger';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -22,6 +23,9 @@ async function bootstrap() {
       },
     }),
   );
+
+  //Cookie parsing (required for HTTP-only cookie auth)
+  app.use(cookieParser());
 
   // ── Swagger (only in non-production environments)
   if (!isProd) {

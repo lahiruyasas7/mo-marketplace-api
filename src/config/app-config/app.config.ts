@@ -10,6 +10,11 @@ export default registerAs('app', () => ({
   fallbackLanguage: applicationConfig.appFallBackLanguage,
   frontendUrl: applicationConfig.frontendUrl,
 
+  jwtAccessSecret: applicationConfig.jwtAccessSecret,
+  jwtRefreshSecret: applicationConfig.jwtRefreshSecret,
+  accessTokenExpiry: applicationConfig.accessTokenExpiry,
+  refreshTokenExpiryDays: applicationConfig.refreshTokenExpiryDays,
+
   // Database Config
   databaseType: 'postgres',
   databaseHost: applicationConfig.database.host,

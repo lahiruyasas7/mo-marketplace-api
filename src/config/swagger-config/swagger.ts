@@ -24,6 +24,7 @@ This API uses **HTTP-only cookies** for authentication — not Bearer tokens.
     )
     .setVersion('1.0')
     .setContact('Lahiru', '#', 'lahiruyasas7@gmail.com')
+    .addServer('/api/v1')
     .addCookieAuth(
       'access_token', // cookie name — must match what the server sets
       {
