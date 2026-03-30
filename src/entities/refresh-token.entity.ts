@@ -26,6 +26,6 @@ export class RefreshToken {
   @CreateDateColumn()
   createdAt: Date;
 
-  @UpdateDateColumn()
-  updatedAt: Date;
+  @UpdateDateColumn({ type: 'timestamp' })
+  expireAt: Date;
 }
