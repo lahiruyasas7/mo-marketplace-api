@@ -1,10 +1,11 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { CreateProductDto } from './dto/create-product.dto';
 import { Variant } from 'src/entities/variant.entity';
 import { generateCombinationKey } from 'src/utils/generate-combination-keys';
 import { Product } from 'src/entities/product.entity';
+import { GetProductsQueryDto } from './dto/get-products-query.dto';
 
 @Injectable()
 export class ProductService {
@@ -74,4 +75,71 @@ export class ProductService {
       };
     });
   }
+
+ 
+async findAll(query: GetProductsQueryDto) {
+  try {
+    const page = parseInt(query.page || '1', 10);
+    const limit = Math.min(parseInt(query.limit || '10', 10), 50);
+    const skip = (page - 1) * limit;
+
+    const qb = this.productRepo
+      .createQueryBuilder('product')
+      .leftJoin('product.variants', 'variant')
+      .select('product.id', 'id')
+      .addSelect('product.name', 'name')
+      .addSelect('product.description', 'description')
+      .addSelect('COALESCE(MIN(variant.price), 0)', 'min_price')
+      .addSelect('COALESCE(MAX(variant.price), 0)', 'max_price')
+      .addSelect('COUNT(variant.id)', 'total_variants')
+      .groupBy('product.id');
+
+    //Search
+    if (query.search) {
+      qb.andWhere('LOWER(product.name) LIKE :search', {
+        search: `%${query.search.toLowerCase()}%`,
+      });
+    }
+
+    //Pagination
+    qb.skip(skip).take(limit);
+
+    const items = await qb.getRawMany();
+
+    //Correct total count (no grouping issue)
+    const totalQb = this.productRepo.createQueryBuilder('product');
+
+    if (query.search) {
+      totalQb.where('LOWER(product.name) LIKE :search', {
+        search: `%${query.search.toLowerCase()}%`,
+      });
+    }
+
+    const total = await totalQb.getCount();
+
+    return {
+      data: items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        min_price: Number(item.min_price),
+        max_price: Number(item.max_price),
+        total_variants: Number(item.total_variants),
+      })),
+      meta: {
+        total,
+        page,
+        limit,
+        total_pages: Math.ceil(total / limit),
+      },
+    };
+  } catch (error) {
+    //log error for debugging
+    console.error('Error fetching products:', error);
+
+    throw new InternalServerErrorException(
+      'Failed to fetch products. Please try again later.',
+    );
+  }
+}
 }
