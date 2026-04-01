@@ -15,8 +15,11 @@ import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
+  ApiInternalServerErrorResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiResponse,
   ApiUnauthorizedResponse,
@@ -103,5 +106,42 @@ export class ProductController {
   @ApiBadRequestResponse({ description: 'Invalid query parameters' })
   async findAll(@Query() query: GetProductsQueryDto) {
     return this.productService.findAll(query);
+  }
+
+  //get one product by productId
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get a product by ID' })
+  @ApiParam({
+    name: 'id',
+    description: 'Product UUID',
+    example: 'a1b2c3d4-e5f6-7890-abcd-1234567890ef',
+  })
+  @ApiOkResponse({
+    description: 'Product fetched successfully',
+    schema: {
+      example: {
+        id: 'a1b2c3d4-e5f6-7890-abcd-1234567890ef',
+        name: 'Sample Product',
+        description: 'This is a sample product',
+        variants: [
+          {
+            id: 'variant-uuid',
+            name: 'Size M',
+            price: 100,
+          },
+        ],
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'Product not found',
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Internal server error',
+  })
+  async findOne(@Param('id') id: string) {
+    return this.productService.findOne(id);
   }
 }
