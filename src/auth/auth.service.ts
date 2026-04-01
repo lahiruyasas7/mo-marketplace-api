@@ -129,6 +129,33 @@ export class AuthService {
     };
   }
 
+  //GET USER INFO
+  async getMe(userId: string) {
+    try {
+      if (!userId) throw new UnauthorizedException('Invalid token');
+      const user = await this.userRepository.findOne({
+        where: { id: userId, isActive: true },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      if (!user) {
+        // Token was valid but user was deleted after token was issued
+        throw new UnauthorizedException('Account not found');
+      }
+
+      return user;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException(error);
+    }
+  }
+
   //  TOKEN GENERATION
   private async generateTokens(userId: string, email: string) {
     const payload = { sub: userId, email };
