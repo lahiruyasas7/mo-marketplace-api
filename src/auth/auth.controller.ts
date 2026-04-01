@@ -79,4 +79,20 @@ export class AuthController {
   async getMe(@GetUser('userId') userId: string) {
     return this.authService.getMe(userId);
   }
+
+  ////refresh token //////////
+  @Public()
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 req/min (less strict than login)
+  @ApiOperation({ summary: 'Refresh access token using refresh token cookie' })
+  @ApiCookieAuth('cookie-auth')
+  @ApiResponse({ status: 200, description: 'New access token issued' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.refreshTokens(req, res);
+  }
 }
