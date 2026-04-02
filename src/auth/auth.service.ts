@@ -3,6 +3,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  Req,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -12,7 +13,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/entities/user.entity';
 import { Repository } from 'typeorm';
 import { RefreshToken } from 'src/entities/refresh-token.entity';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import { RegisterUserDto } from './dto/register-user.dto';
 import * as bcrypt from 'bcrypt';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -129,6 +130,90 @@ export class AuthService {
     };
   }
 
+  //GET USER INFO
+  async getMe(userId: string) {
+    try {
+      if (!userId) throw new UnauthorizedException('Invalid token');
+      const user = await this.userRepository.findOne({
+        where: { id: userId, isActive: true },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      if (!user) {
+        // Token was valid but user was deleted after token was issued
+        throw new UnauthorizedException('Account not found');
+      }
+
+      return user;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException(error);
+    }
+  }
+
+  /////////refresh token //////////
+  async refreshTokens(req: Request, res: Response) {
+    const refreshToken = req.cookies?.refresh_token;
+    if (!refreshToken) throw new UnauthorizedException('No refresh token');
+
+    try {
+      // 1. Verify JWT signature and expiration
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: this.configService.get<string>('app.jwtRefreshSecret'),
+      });
+
+      // 2. Validate user exists and is active
+      const user = await this.userRepository.findOne({
+        where: { id: payload.sub, isActive: true },
+        select: { id: true, email: true },
+      });
+
+      if (!user) {
+        throw new UnauthorizedException('Account not found or inactive');
+      }
+
+      // 3. Validate refresh token against database (check hash and expiration)
+      const tokenHash = this.hashToken(refreshToken);
+      const storedToken = await this.refreshTokenRepository.findOne({
+        where: {
+          token_hash: tokenHash,
+          user: { id: user.id },
+        },
+      });
+
+      if (!storedToken || storedToken.expireAt < new Date()) {
+        throw new UnauthorizedException('Invalid or expired refresh token');
+      }
+
+      // 4. Generate new tokens
+      const newTokens = await this.generateTokens(user.id, user.email);
+
+      // 5. Revoke old refresh token (optional but recommended)
+      await this.refreshTokenRepository.remove(storedToken);
+
+      // 6. Store new refresh token in DB
+      await this.storeRefreshToken(user.id, newTokens.refreshToken);
+
+      // 7. Set new refresh token in HttpOnly cookie
+      this.setAuthCookies(res, newTokens.accessToken, newTokens.refreshToken);
+
+      this.logger.log(`Tokens refreshed for user: ${user.id}`);
+
+      return { accessToken: newTokens.accessToken };
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Invalid or expired refresh token';
+      this.logger.error(`Token refresh failed: ${errorMessage}`);
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+  }
+
   //  TOKEN GENERATION
   private async generateTokens(userId: string, email: string) {
     const payload = { sub: userId, email };
@@ -211,6 +296,29 @@ export class AuthService {
       path: '/auth/refresh', // only sent to this endpoint
       maxAge: refreshMaxAge * 24 * 60 * 60 * 1000,
     });
+  }
+
+  //  LOGOUT
+  async logout(userId: string, res: Response) {
+    try {
+      // Revoke all refresh tokens for this user from database
+      await this.refreshTokenRepository.delete({ user: { id: userId } });
+
+      this.logger.log(`User logged out: ${userId}`);
+
+      // Clear cookies from response
+      res.clearCookie('access_token');
+      res.clearCookie('refresh_token', { path: '/auth/refresh' });
+
+      return {
+        message: 'Logout successful',
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Failed to logout user: ${message}`);
+      throw new InternalServerErrorException('Logout failed');
+    }
   }
 
   //  UTILITIES
