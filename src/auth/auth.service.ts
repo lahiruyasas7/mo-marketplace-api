@@ -298,6 +298,29 @@ export class AuthService {
     });
   }
 
+  //  LOGOUT
+  async logout(userId: string, res: Response) {
+    try {
+      // Revoke all refresh tokens for this user from database
+      await this.refreshTokenRepository.delete({ user: { id: userId } });
+
+      this.logger.log(`User logged out: ${userId}`);
+
+      // Clear cookies from response
+      res.clearCookie('access_token');
+      res.clearCookie('refresh_token', { path: '/auth/refresh' });
+
+      return {
+        message: 'Logout successful',
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : JSON.stringify(error);
+      this.logger.error(`Failed to logout user: ${message}`);
+      throw new InternalServerErrorException('Logout failed');
+    }
+  }
+
   //  UTILITIES
   private hashToken(token: string): string {
     return crypto.createHash('sha256').update(token).digest('hex');

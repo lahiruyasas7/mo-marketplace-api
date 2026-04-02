@@ -95,4 +95,25 @@ export class AuthController {
   ) {
     return this.authService.refreshTokens(req, res);
   }
+
+  /**
+   * POST /auth/logout
+   * Protected — requires valid access_token cookie
+   * Revokes all refresh tokens for the user and clears auth cookies
+   */
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiCookieAuth('cookie-auth')
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 req/min
+  @ApiOperation({ summary: 'Logout current user and revoke all tokens' })
+  @ApiResponse({ status: 200, description: 'Logout successful' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async logout(
+    @GetUser('userId') userId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.logout(userId, res);
+  }
 }
