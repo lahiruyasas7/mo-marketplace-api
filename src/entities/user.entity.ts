@@ -29,8 +29,7 @@ export class User {
   @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user)
   refreshTokens: RefreshToken[];
 
-
-  @OneToMany(() => Order, (order) => order.user)  // 👈 added
+  @OneToMany(() => Order, (order) => order.user) //added
   orders: Order[];
 
   @CreateDateColumn()
