@@ -94,6 +94,7 @@ export class ProductService {
         .select('product.id', 'id')
         .addSelect('product.name', 'name')
         .addSelect('product.description', 'description')
+        .addSelect('product.productImageUrl', 'productImageUrl')
         .addSelect('COALESCE(MIN(variant.price), 0)', 'min_price')
         .addSelect('COALESCE(MAX(variant.price), 0)', 'max_price')
         .addSelect('COUNT(variant.id)', 'total_variants')
@@ -127,6 +128,7 @@ export class ProductService {
           id: item.id,
           name: item.name,
           description: item.description,
+          productImageUrl: item.productImageUrl,
           min_price: Number(item.min_price),
           max_price: Number(item.max_price),
           total_variants: Number(item.total_variants),
@@ -185,7 +187,7 @@ export class ProductService {
       id: product.id,
       name: product.name,
       description: product.description,
-
+      productImageUrl: product.productImageUrl,
       options,
 
       variants: variants.map((v) => ({
