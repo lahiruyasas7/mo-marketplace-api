@@ -293,7 +293,7 @@ export class AuthService {
       httpOnly: true,
       secure: isProd,
       sameSite: isProd ? 'none' : 'lax', // Allow cross-site in production for refresh endpoint
-      path: '/auth/refresh', // only sent to this endpoint
+      path: '/api/v1/auth/refresh', // must match actual API prefix + endpoint path
       maxAge: refreshMaxAge * 24 * 60 * 60 * 1000,
     });
   }
@@ -308,7 +308,7 @@ export class AuthService {
 
       // Clear cookies from response
       res.clearCookie('access_token');
-      res.clearCookie('refresh_token', { path: '/auth/refresh' });
+      res.clearCookie('refresh_token', { path: '/api/v1/auth/refresh' });
 
       return {
         message: 'Logout successful',
