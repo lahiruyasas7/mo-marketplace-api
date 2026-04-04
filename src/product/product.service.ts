@@ -98,7 +98,8 @@ export class ProductService {
         .addSelect('COALESCE(MIN(variant.price), 0)', 'min_price')
         .addSelect('COALESCE(MAX(variant.price), 0)', 'max_price')
         .addSelect('COUNT(variant.id)', 'total_variants')
-        .groupBy('product.id');
+        .groupBy('product.id')
+        .orderBy('product.created_at', 'DESC');
 
       //Search
       if (query.search) {
@@ -107,8 +108,8 @@ export class ProductService {
         });
       }
 
-      //Pagination
-      qb.skip(skip).take(limit);
+      // pagination
+      qb.limit(limit).offset(skip);
 
       const items = await qb.getRawMany();
 
