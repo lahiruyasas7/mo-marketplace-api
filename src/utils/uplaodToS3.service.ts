@@ -3,7 +3,6 @@ import {
   S3Client,
   PutObjectCommand,
   ObjectCannedACL,
-  DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 import { extname } from 'path';
