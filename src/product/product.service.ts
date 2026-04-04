@@ -24,12 +24,13 @@ export class ProductService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async create(createProductDto: CreateProductDto) {
+  async create(createProductDto: CreateProductDto, productImageUrl?: string) {
     return this.dataSource.transaction(async (manager) => {
       // Create product
       const product = manager.create(Product, {
         name: createProductDto.name,
         description: createProductDto.description,
+        productImageUrl: productImageUrl,
       });
 
       const savedProduct = await manager.save(product);
