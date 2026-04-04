@@ -7,6 +7,7 @@ import { TypeOrmConfigService } from './config/database-config/typeorm-config.se
 import { AuthModule } from './auth/auth.module';
 import { ProductModule } from './product/product.module';
 import { OrderModule } from './order/order.module';
+import { MulterModule } from '@nestjs/platform-express';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { OrderModule } from './order/order.module';
     AuthModule,
     ProductModule,
     OrderModule,
+    MulterModule.register({}),
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -19,6 +19,9 @@ export class Product {
   @Column({ type: 'text', nullable: true })
   description?: string;
 
+  @Column({ nullable: true })
+  productImageUrl?: string;
+
   // Optional: base price (can be overridden by variants)
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   base_price?: number;

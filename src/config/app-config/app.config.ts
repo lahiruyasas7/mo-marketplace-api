@@ -26,4 +26,10 @@ export default registerAs('app', () => ({
   databaseMaxConnection: applicationConfig.database.maxConnection,
   databaseSslEnabled: applicationConfig.database.sslEnabled,
   databaseRejectUnauthorized: applicationConfig.database.rejectUnauthorized,
+
+  //aws Config
+  awsAccessKeyId: applicationConfig.aws.accessKeyId,
+  awsSecretAccessKey: applicationConfig.aws.secretAccessKey,
+  awsRegion: applicationConfig.aws.region,
+  awsS3BucketName: applicationConfig.aws.s3BucketName,
 }));

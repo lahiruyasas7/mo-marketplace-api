@@ -24,12 +24,13 @@ export class ProductService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async create(createProductDto: CreateProductDto) {
+  async create(createProductDto: CreateProductDto, productImageUrl?: string) {
     return this.dataSource.transaction(async (manager) => {
       // Create product
       const product = manager.create(Product, {
         name: createProductDto.name,
         description: createProductDto.description,
+        productImageUrl: productImageUrl,
       });
 
       const savedProduct = await manager.save(product);
@@ -93,10 +94,12 @@ export class ProductService {
         .select('product.id', 'id')
         .addSelect('product.name', 'name')
         .addSelect('product.description', 'description')
+        .addSelect('product.productImageUrl', 'productImageUrl')
         .addSelect('COALESCE(MIN(variant.price), 0)', 'min_price')
         .addSelect('COALESCE(MAX(variant.price), 0)', 'max_price')
         .addSelect('COUNT(variant.id)', 'total_variants')
-        .groupBy('product.id');
+        .groupBy('product.id')
+        .orderBy('product.created_at', 'DESC');
 
       //Search
       if (query.search) {
@@ -105,8 +108,8 @@ export class ProductService {
         });
       }
 
-      //Pagination
-      qb.skip(skip).take(limit);
+      // pagination
+      qb.limit(limit).offset(skip);
 
       const items = await qb.getRawMany();
 
@@ -126,6 +129,7 @@ export class ProductService {
           id: item.id,
           name: item.name,
           description: item.description,
+          productImageUrl: item.productImageUrl,
           min_price: Number(item.min_price),
           max_price: Number(item.max_price),
           total_variants: Number(item.total_variants),
@@ -184,7 +188,7 @@ export class ProductService {
       id: product.id,
       name: product.name,
       description: product.description,
-
+      productImageUrl: product.productImageUrl,
       options,
 
       variants: variants.map((v) => ({

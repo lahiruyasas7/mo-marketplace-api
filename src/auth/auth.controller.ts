@@ -39,7 +39,6 @@ export class AuthController {
   async registerUser(
     @Body() registerCustomerDto: RegisterUserDto,
     @Res({ passthrough: true }) res: Response,
-    @Req() req: Request,
   ) {
     return this.authService.registerUser(registerCustomerDto, res);
   }
