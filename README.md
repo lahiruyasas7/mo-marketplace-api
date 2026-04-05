@@ -84,8 +84,8 @@ https://drive.google.com/file/d/1mKSHXkzuBhyJzzpuF9f0ytddTJomjJh0/view?usp=shari
 3. PostgreSQL (v15+)
 
 ## 1. Clone Repositories
-1. git clone https://github.com/your-username/mo-marketplace-api
-2. git clone https://github.com/your-username/mo-marketplace-web
+1. git clone https://github.com/lahiruyasas7/mo-marketplace-api.git
+2. git clone https://github.com/lahiruyasas7/mo-marketplace-frontend.git
 
 ## 2. Backend Setup
 - cd mo-marketplace-api
