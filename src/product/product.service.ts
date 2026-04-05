@@ -40,7 +40,15 @@ export class ProductService {
 
       // Process variants
       for (const variantDto of createProductDto.variants) {
-        const key = generateCombinationKey(variantDto.options);
+        // Normalize options values to lowercase
+        const normalizedOptions = Object.fromEntries(
+          Object.entries(variantDto.options).map(([k, v]) => [
+            k,
+            typeof v === 'string' ? v.toLowerCase() : v,
+          ]),
+        );
+
+        const key = generateCombinationKey(normalizedOptions);
 
         // Prevent duplicates in request itself
         if (seenKeys.has(key)) {
@@ -48,7 +56,7 @@ export class ProductService {
         }
         seenKeys.add(key);
 
-        //Check DB duplicate
+        // Check DB duplicate
         const exists = await manager.findOne(Variant, {
           where: {
             product_id: savedProduct.id,
@@ -63,7 +71,7 @@ export class ProductService {
         const variant = manager.create(Variant, {
           product_id: savedProduct.id,
           combination_key: key,
-          options: variantDto.options,
+          options: normalizedOptions,
           price: variantDto.price,
           stock: variantDto.stock,
         });
@@ -81,7 +89,6 @@ export class ProductService {
       };
     });
   }
-
   async findAll(query: GetProductsQueryDto) {
     try {
       const page = parseInt(query.page || '1', 10);
@@ -161,8 +168,19 @@ export class ProductService {
       throw new NotFoundException('Product not found');
     }
 
-    // Filter active variants (optional but recommended)
+    // Filter active variants
     const variants = product.variants.filter((v) => v.is_active);
+
+    // Helper to uppercase all string values in options
+    const uppercaseOptions = (
+      options: Record<string, any>,
+    ): Record<string, any> =>
+      Object.fromEntries(
+        Object.entries(options).map(([k, v]) => [
+          k,
+          typeof v === 'string' ? v.toUpperCase() : v,
+        ]),
+      );
 
     // Build options map
     const optionsMap: Record<string, Set<string>> = {};
@@ -172,7 +190,7 @@ export class ProductService {
         if (!optionsMap[key]) {
           optionsMap[key] = new Set();
         }
-        optionsMap[key].add(String(value));
+        optionsMap[key].add(String(value).toUpperCase()); // ← uppercase here
       }
     }
 
@@ -194,7 +212,7 @@ export class ProductService {
       variants: variants.map((v) => ({
         id: v.id,
         combination_key: v.combination_key,
-        options: v.options,
+        options: uppercaseOptions(v.options), // ← uppercase here
         price: Number(v.price),
         stock: v.stock,
         is_active: v.is_active,
