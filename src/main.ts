@@ -27,16 +27,26 @@ async function bootstrap() {
   //cors configuration
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin) return callback(null, true); // allow non-browser requests like Postman
+      if (!origin) return callback(null, true); // allow Postman / non-browser
+
       const frontendUrl = process.env.FRONTEND_URL;
-      if (frontendUrl && origin === frontendUrl) {
-        callback(null, true); // allow this origin
+      const allowedOrigins = [frontendUrl];
+
+      // Allow Swagger UI origin in non-production environments
+      if (!isProd) {
+        allowedOrigins.push(
+          `http://localhost:${configService.get('app.port')}`,
+        );
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
       } else {
-        callback(new Error(`CORS not allowed for origin: ${origin}`)); // block any other origin
+        callback(new Error(`CORS not allowed for origin: ${origin}`));
       }
     },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'], // allowed HTTP methods
-    credentials: true, // allow cookies and Authorization headers
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    credentials: true,
   });
 
   //Cookie parsing (required for HTTP-only cookie auth)
