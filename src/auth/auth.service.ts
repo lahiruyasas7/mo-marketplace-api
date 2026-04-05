@@ -274,7 +274,7 @@ export class AuthService {
     accessToken: string,
     refreshToken: string,
   ) {
-    const isProd = this.configService.get('NODE_ENV') === 'production';
+    const isProd = this.configService.get('app.nodeEnv') === 'production';
 
     const refreshMaxAge = this.configService.get<number>(
       'app.refreshTokenExpiryDays',
@@ -283,7 +283,7 @@ export class AuthService {
     res.cookie('access_token', accessToken, {
       httpOnly: true,
       secure: isProd, // HTTPS only in production
-      sameSite: 'strict',
+      sameSite: isProd ? 'none' : 'lax', // none required for cross-origin in prod
       maxAge: 15 * 60 * 1000, // 15 minutes in ms
     });
 
